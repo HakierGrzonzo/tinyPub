@@ -14,3 +14,13 @@ Just run it with your *.epub* file as an argument:
 
 It works on linux, maybe works on windows.
 
+### Keybindings:
+
+|   h    | previous chapter                      |
+| :----: | ------------------------------------- |
+|   l    | next chapter                          |
+|   j    | move cursor to the previous paragraph |
+|   k    | move the cursor to the next paragraph |
+| arrows | move the cursor                       |
+| crtl-q | quit tinyPub (and save progress)      |
+
