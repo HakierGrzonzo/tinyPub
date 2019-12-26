@@ -60,13 +60,36 @@ def mapBreaks(chapter):
     return res, breaks
 
 def Display(book, chapter_, cursor):
+    chapter = chapter_
+
     def makeDocument(chapter, cursor = 0):
         text, breaks = mapBreaks(chapter)
-        return pt.document.Document(text = text, cursor_position = cursor), breaks
-    chapter = chapter_
+        try:
+            return pt.document.Document(text = text, cursor_position = cursor), breaks
+        except:
+            return pt.document.Document(text = text, cursor_position = 0), breaks
+            
+    def GetBottomText(doc = None):
+        nonlocal chapter, book
+        text = str(chapter) +'/'+ str(len(book) + 1)
+        if not doc == None:
+            percentage = int(doc.cursor_position / len(doc.text) * 100 + 0.1)
+            text += ' ' + str(percentage) + '%'
+        return pt.document.Document(text = text)
+
     doc, breaks = makeDocument(book[chapter], cursor)
     disp = pt.layout.controls.BufferControl( pt.buffer.Buffer(document = doc, read_only = True))
     kb = pt.key_binding.KeyBindings()
+    dynamicBuffer = pt.buffer.Buffer(document = GetBottomText(doc), read_only = True, multiline = False, name = 'status')
+    dynamic = pt.layout.controls.BufferControl(buffer = dynamicBuffer, focusable = False)
+
+    def updateBottomText(event):
+        try:
+            dynamicBuffer = event.app.layout.get_buffer_by_name('status')
+            dynamicBuffer.set_document(GetBottomText(event.app.current_buffer.document), bypass_readonly = True)
+        except:
+            dynamicBuffer = event.layout.get_buffer_by_name('status')
+            dynamicBuffer.set_document(GetBottomText(event.current_buffer.document), bypass_readonly = True)
 
     @kb.add('c-q')
     def exit_(event):
@@ -109,12 +132,15 @@ def Display(book, chapter_, cursor):
             event.app.current_buffer.set_document(doc, bypass_readonly = True)
 
     Tooltip = pt.layout.controls.FormattedTextControl(text = 
-            pt.HTML('<ansigreen>Press crtl-q to exit ' + str(chapter + 1) + '/' + str(len(book) + 1) + ' </ansigreen>'))
+            pt.HTML('<ansigreen>Press crtl-q to exit </ansigreen>'))
     container = pt.layout.Layout(pt.layout.containers.HSplit([
         pt.layout.containers.Window(content = disp),
-        pt.layout.containers.Window(content = Tooltip)
+        pt.layout.containers.VSplit([
+            pt.layout.containers.Window(content = Tooltip, dont_extend_width = True),
+            pt.layout.containers.Window(content = dynamic)
+            ])
         ]))
-    app = pt.Application(key_bindings = kb, layout = container, full_screen = True)
+    app = pt.Application(key_bindings = kb, layout = container, full_screen = True, on_invalidate = updateBottomText)
     app.run()
 
     return chapter, cursor
