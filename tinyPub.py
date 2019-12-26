@@ -9,14 +9,23 @@ from multiprocessing import pool, cpu_count
 
 __version__ = 'tinypub v.1'
 log = list()
-html2text.BODY_WIDTH = 80
+
 
 def proccesChapter(item):
     if item.get_type() == ebooklib.ITEM_DOCUMENT:
-        item = html2text.html2text(item.get_body_content().decode('utf-8'))
+        htmlmaker = html2text.HTML2Text()
+        htmlmaker.body_width = 78
+        htmlmaker.ignore_images = True
+        htmlmaker.ignore_anchors = True
+        htmlmaker.ignore_emphasis = False
+        htmlmaker.skip_internal_links = True
+        htmlmaker.use_automatic_links = True
+        htmlmaker.strong_mark = '_'
+        item = htmlmaker.handle(item.get_body_content().decode('utf-8'))
         return item
     else:
         return str()
+
 def OpenFile(fname):
     book = epub.read_epub(fname)
     p = pool.Pool(cpu_count())
@@ -73,7 +82,7 @@ def Display(book, chapter_, cursor):
         nonlocal chapter, book
         text = str(chapter) +'/'+ str(len(book) + 1)
         if not doc == None:
-            percentage = int(doc.cursor_position / len(doc.text) * 100 + 0.1)
+            percentage = int((doc.cursor_position + 2) / len(doc.text) * 100)
             text += ' ' + str(percentage) + '%'
         return pt.document.Document(text = text)
 
