@@ -5,41 +5,127 @@ import ebooklib
 import os, sys
 import prompt_toolkit as pt
 import html2text
-from multiprocessing import pool, cpu_count
+from prompt_toolkit import Application
+from prompt_toolkit.layout.containers import HSplit, Window
+from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
+from prompt_toolkit.layout.layout import Layout
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.buffer import  Buffer
 
 __version__ = 'tinypub v.1'
 log = list()
-html2text.BODY_WIDTH = 80
+html2text.BODY_WIDTH = 90
 
-def proccesChapter(item):
-    if item.get_type() == ebooklib.ITEM_DOCUMENT:
-        item = html2text.html2text(item.get_body_content().decode('utf-8'))
-        return item
-    else:
-        return str()
-def OpenFile(fname):
-    book = epub.read_epub(fname)
-    p = pool.Pool(cpu_count())
-    res = p.map(proccesChapter ,list(book.get_items()))
+def CleanUpper(text):
+    global log 
+    res = str() 
+    for line in text:
+        try:
+            textToStrip = line[line.find('](') + 1: line.find(')') + 1]
+            if line.find('](') != -1:
+                line = line.replace(textToStrip, '')
+                line = line.replace('![','')
+                #line = line.replace('[','').replace(']','')
+            else:
+                line = line.replace(textToStrip, '')
+                line = line.replace('![','')
+            log.append('Striping:' + textToStrip)
+        except Exception as e:
+            log.append(e) 
+        if line != str():
+            res += line + ' '
+        else:
+            res += '\n'
+    return html2text.optwrap(res).split('\n')
+
+
+def OpenChapter(chapter, images = None):
+    text = chapter.get_body_content().decode("utf-8")
+    text = html2text.html2text(text)
+    text = text.split('\n')
+    text = CleanUpper(text)
+    res = str()
+    breaks = list()
+    for line in text:
+        res += ' '  + line + '\n'
+        if line == str():
+            breaks.append(len(res) - 2)
+    return res, breaks
+
+def OpenFile(file):
+    book = epub.read_epub(file)
     chapters = list()
-    for x in res:
-        if not x == str():
-            chapters.append(x)
+    for item in book.get_items():
+        if item.get_type() == ebooklib.ITEM_DOCUMENT:
+            chapters.append(item)
     return chapters, book.get_metadata('DC', 'title')
+
+def SetState(state_):
+    global state
+    state = state_
+
+def Display(text, cursorPos = 0, titlebar = str(), breaks = None):
+    kb = KeyBindings()
+    try:
+        doc = pt.document.Document(text = text, cursor_position = cursorPos)
+    except AssertionError:
+        doc = pt.document.Document(text = text, cursor_position = 0)
+    Displayer = Buffer(read_only = True, multiline = True, document = doc)
+    SetState(None)
+    @kb.add('j')
+    def parNext_(event):
+        if not breaks == None:
+            for par in breaks:
+                if par > Displayer.cursor_position:
+                    Displayer._set_cursor_position(par)
+                    break
+    @kb.add('k')
+    def parPrev_(event):
+        if not breaks == None:
+            x = breaks.copy()
+            x.reverse()
+            for par in x:
+                if par < Displayer.cursor_position:
+                    Displayer._set_cursor_position(par)
+                    break
+
+    @kb.add('c-q')
+    def exit_(event):
+        SetState('exit')
+        event.app.exit()
+
+    @kb.add('l')
+    def next_(event):
+        SetState('next')
+        event.app.exit()
+
+    @kb.add('h')
+    def prev_(event):
+        SetState('prev')
+        event.app.exit()
+
+    Tooltip = pt.HTML('<ansigreen>Press crtl-q to exit ' + titlebar + ' </ansigreen>')
+    root_container = HSplit([
+        Window(content = BufferControl(buffer = Displayer)),
+        Window(content = FormattedTextControl(text = Tooltip))
+        ])
+
+    layout = Layout(root_container)
+    app = Application(key_bindings = kb, layout = layout, full_screen = True)
+    app.run()
+    return Displayer.cursor_position
 
 def Settings():
     global __version__
     try:
         file = open(os.path.expanduser('~/.tinypub.json'), 'r')
         settings = json.loads(file.read())
-        file.close()
     except:
         file = open(os.path.expanduser('~/.tinypub.json'), 'w+')
         file.write(json.dumps({'name': __version__}))
         file.close()
         file = open(os.path.expanduser('~/.tinypub.json'), 'r')
         settings = json.loads(file.read())
-        file.close()
     # Convert old .tinypub.json formats to new spec
     if not 'books' in settings.keys():
         settings['books'] = dict()
@@ -49,109 +135,13 @@ def Settings():
         settings['name'] = __version__
     return settings
 
-def mapBreaks(chapter):
-    lines = chapter.split('\n')
-    breaks = list()
-    res = str()
-    for line in lines:
-        res += ' ' + line + '\n'
-        if line == str():
-            breaks.append(len(res) - 2)
-    return res, breaks
-
-def Display(book, chapter_, cursor):
-    chapter = chapter_
-
-    def makeDocument(chapter, cursor = 0):
-        text, breaks = mapBreaks(chapter)
-        try:
-            return pt.document.Document(text = text, cursor_position = cursor), breaks
-        except:
-            return pt.document.Document(text = text, cursor_position = 0), breaks
-            
-    def GetBottomText(doc = None):
-        nonlocal chapter, book
-        text = str(chapter) +'/'+ str(len(book) + 1)
-        if not doc == None:
-            percentage = int(doc.cursor_position / len(doc.text) * 100 + 0.1)
-            text += ' ' + str(percentage) + '%'
-        return pt.document.Document(text = text)
-
-    doc, breaks = makeDocument(book[chapter], cursor)
-    disp = pt.layout.controls.BufferControl( pt.buffer.Buffer(document = doc, read_only = True))
-    kb = pt.key_binding.KeyBindings()
-    dynamicBuffer = pt.buffer.Buffer(document = GetBottomText(doc), read_only = True, multiline = False, name = 'status')
-    dynamic = pt.layout.controls.BufferControl(buffer = dynamicBuffer, focusable = False)
-
-    def updateBottomText(event):
-        try:
-            dynamicBuffer = event.app.layout.get_buffer_by_name('status')
-            dynamicBuffer.set_document(GetBottomText(event.app.current_buffer.document), bypass_readonly = True)
-        except:
-            dynamicBuffer = event.layout.get_buffer_by_name('status')
-            dynamicBuffer.set_document(GetBottomText(event.current_buffer.document), bypass_readonly = True)
-
-    @kb.add('c-q')
-    def exit_(event):
-        nonlocal cursor
-        cursor = event.app.current_buffer.cursor_position
-        event.app.exit()
-
-    @kb.add('j')
-    def parNext_(event):
-        if not breaks == None:
-            Displayer = event.app.current_buffer
-            for par in breaks:
-                if par > Displayer.cursor_position:
-                    Displayer._set_cursor_position(par)
-                    break
-    @kb.add('k')
-    def parPrev_(event):
-        if not breaks == None:
-            Displayer = event.app.current_buffer
-            x = breaks.copy()
-            x.reverse()
-            for par in x:
-                if par < Displayer.cursor_position:
-                    Displayer._set_cursor_position(par)
-                    break
-    @kb.add('h')
-    def prev_(event):
-        nonlocal chapter, breaks
-        if chapter > 0:
-            chapter -= 1
-            doc, breaks = makeDocument(book[chapter])
-            event.app.current_buffer.set_document(doc, bypass_readonly = True)
-
-    @kb.add('l')
-    def prev_(event):
-        nonlocal chapter, breaks
-        if chapter < len(book):
-            chapter += 1
-            doc, breaks = makeDocument(book[chapter])
-            event.app.current_buffer.set_document(doc, bypass_readonly = True)
-
-    Tooltip = pt.layout.controls.FormattedTextControl(text = 
-            pt.HTML('<ansigreen>Press crtl-q to exit </ansigreen>'))
-    container = pt.layout.Layout(pt.layout.containers.HSplit([
-        pt.layout.containers.Window(content = disp),
-        pt.layout.containers.VSplit([
-            pt.layout.containers.Window(content = Tooltip, dont_extend_width = True),
-            pt.layout.containers.Window(content = dynamic)
-            ])
-        ]))
-    app = pt.Application(key_bindings = kb, layout = container, full_screen = True, on_invalidate = updateBottomText)
-    app.run()
-
-    return chapter, cursor
-
 def DumpSettings(settings):
     file = open(os.path.expanduser('~/.tinypub.json'), 'w')
     file.write(json.dumps(settings))
-    file.close()
 
 def main(fname):
     global settings
+    global state
     book, bookTitle = OpenFile(fname)
     bookTitle, x = bookTitle[0]
     try:
@@ -166,13 +156,31 @@ def main(fname):
         chapter = 0
         cursor = 0
         input('The saved stats were corrupted, starting from first chapter. Press any key to continue.')
-    chapter, cursor = Display(book, chapter, cursor)
+    while state != 'exit':
+        try:
+            status = ' ' + str(chapter + 1) + '/' + str(len(book))
+            text, breaks = OpenChapter(book[chapter])
+            cursor = Display(text, cursorPos = cursor, titlebar = status, breaks=breaks)
+            if state == 'next':
+                cursor = 0
+                chapter += 1
+                if chapter == len(book):
+                    state = 'exit'
+                    print('The End')
+            elif state == 'prev':
+                cursor = 0
+                if not chapter == 0:
+                    chapter -= 1
+        except Exception as e:
+            print(e)
+            raise e
+            SetState('exit')
     settings['books'][bookTitle]['chapter'] = chapter
     settings['books'][bookTitle]['cursor'] = cursor
     DumpSettings(settings)
-    
+
 if __name__ == '__main__':
-    Debug = True
+    Debug = False 
     state = None
     settings = Settings()
     if len(sys.argv) > 1:
