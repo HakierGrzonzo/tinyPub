@@ -12,29 +12,22 @@ log = list()
 
 
 def proccesChapter(item):
-    if item.get_type() == ebooklib.ITEM_DOCUMENT:
-        htmlmaker = html2text.HTML2Text()
-        htmlmaker.body_width = 78
-        htmlmaker.ignore_images = True
-        htmlmaker.ignore_anchors = True
-        htmlmaker.ignore_emphasis = False
-        htmlmaker.skip_internal_links = True
-        htmlmaker.use_automatic_links = True
-        htmlmaker.strong_mark = '_'
-        item = htmlmaker.handle(item.get_body_content().decode('utf-8'))
-        return item
-    else:
-        return str()
+    htmlmaker = html2text.HTML2Text()
+    htmlmaker.body_width = 78
+    htmlmaker.ignore_images = True
+    htmlmaker.ignore_anchors = True
+    htmlmaker.ignore_emphasis = False
+    htmlmaker.skip_internal_links = True
+    htmlmaker.use_automatic_links = True
+    htmlmaker.strong_mark = '_'
+    item = htmlmaker.handle(item.get_body_content().decode('utf-8'))
+    return item
 
 def OpenFile(fname):
     book = epub.read_epub(fname)
     p = pool.Pool(cpu_count())
-    res = p.map(proccesChapter ,list(book.get_items()))
-    chapters = list()
-    for x in res:
-        if not x == str():
-            chapters.append(x)
-    return chapters, book.get_metadata('DC', 'title')
+    res = p.map(proccesChapter ,list(book.get_items_of_type(ebooklib.ITEM_DOCUMENT)))
+    return res, book.get_metadata('DC', 'title')
 
 def Settings():
     global __version__
@@ -68,8 +61,7 @@ def mapBreaks(chapter):
             breaks.append(len(res) - 2)
     return res, breaks
 
-def Display(book, chapter_, cursor):
-    chapter = chapter_
+def Display(book, chapter = 0, cursor = 0):
 
     def makeDocument(chapter, cursor = 0):
         text, breaks = mapBreaks(chapter)
@@ -77,13 +69,15 @@ def Display(book, chapter_, cursor):
             return pt.document.Document(text = text, cursor_position = cursor), breaks
         except:
             return pt.document.Document(text = text, cursor_position = 0), breaks
-            
+
     def GetBottomText(doc = None):
         nonlocal chapter, book
-        text = str(chapter) +'/'+ str(len(book) + 1)
+        text = str(chapter + 1) +'/'+ str(len(book))
         if not doc == None:
             percentage = int((doc.cursor_position + 2) / len(doc.text) * 100)
-            text += ' ' + str(percentage) + '%'
+            text += ' ' + str(percentage) + '% '
+        if chapter + 1 == len(book):
+            text += 'The end :('
         return pt.document.Document(text = text)
 
     doc, breaks = makeDocument(book[chapter], cursor)
@@ -135,12 +129,12 @@ def Display(book, chapter_, cursor):
     @kb.add('l')
     def prev_(event):
         nonlocal chapter, breaks
-        if chapter < len(book):
+        if chapter < len(book)-1:
             chapter += 1
             doc, breaks = makeDocument(book[chapter])
             event.app.current_buffer.set_document(doc, bypass_readonly = True)
 
-    Tooltip = pt.layout.controls.FormattedTextControl(text = 
+    Tooltip = pt.layout.controls.FormattedTextControl(text =
             pt.HTML('<ansigreen>Press crtl-q to exit </ansigreen>'))
     container = pt.layout.Layout(pt.layout.containers.HSplit([
         pt.layout.containers.Window(content = disp),
@@ -179,7 +173,7 @@ def main(fname):
     settings['books'][bookTitle]['chapter'] = chapter
     settings['books'][bookTitle]['cursor'] = cursor
     DumpSettings(settings)
-    
+
 if __name__ == '__main__':
     Debug = True
     state = None
