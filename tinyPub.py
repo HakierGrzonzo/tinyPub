@@ -4,7 +4,7 @@ import fileinput, json
 import ebooklib
 import os, sys
 import prompt_toolkit as pt
-import html2text
+import htmlParser
 from multiprocessing import pool, cpu_count
 
 __version__ = 'tinypub v.1'
@@ -12,22 +12,17 @@ log = list()
 
 
 def proccesChapter(item):
-    htmlmaker = html2text.HTML2Text()
-    htmlmaker.body_width = 78
-    htmlmaker.ignore_images = True
-    htmlmaker.ignore_anchors = True
-    htmlmaker.ignore_emphasis = False
-    htmlmaker.skip_internal_links = True
-    htmlmaker.use_automatic_links = True
-    htmlmaker.strong_mark = '_'
-    item = htmlmaker.handle(item.get_body_content().decode('utf-8'))
-    return item
+    return htmlParser.parse(item, ['sup'])
 
 def OpenFile(fname):
     book = epub.read_epub(fname)
     p = pool.Pool(cpu_count())
     res = p.map(proccesChapter ,list(book.get_items_of_type(ebooklib.ITEM_DOCUMENT)))
-    return res, book.get_metadata('DC', 'title')
+    result = list()
+    for x in res:
+        if not x == None:
+            result.append(x)
+    return result, book.get_metadata('DC', 'title')
 
 def Settings():
     global __version__
@@ -51,20 +46,11 @@ def Settings():
         settings['name'] = __version__
     return settings
 
-def mapBreaks(chapter):
-    lines = chapter.split('\n')
-    breaks = list()
-    res = str()
-    for line in lines:
-        res += ' ' + line + '\n'
-        if line == str():
-            breaks.append(len(res) - 2)
-    return res, breaks
 
 def Display(book, chapter = 0, cursor = 0):
 
     def makeDocument(chapter, cursor = 0):
-        text, breaks = mapBreaks(chapter)
+        text, breaks = htmlParser.wraper(chapter, generate_breaks = True)
         try:
             return pt.document.Document(text = text, cursor_position = cursor), breaks
         except:
@@ -102,22 +88,28 @@ def Display(book, chapter = 0, cursor = 0):
 
     @kb.add('j')
     def parNext_(event):
-        if not breaks == None:
-            Displayer = event.app.current_buffer
-            for par in breaks:
-                if par > Displayer.cursor_position:
-                    Displayer._set_cursor_position(par)
-                    break
+        try:
+            if not breaks == None:
+                Displayer = event.app.current_buffer
+                for par in breaks:
+                    if par > Displayer.cursor_position:
+                        Displayer._set_cursor_position(par)
+                        break
+        except:
+            pass
     @kb.add('k')
     def parPrev_(event):
-        if not breaks == None:
-            Displayer = event.app.current_buffer
-            x = breaks.copy()
-            x.reverse()
-            for par in x:
-                if par < Displayer.cursor_position:
-                    Displayer._set_cursor_position(par)
-                    break
+        try:
+            if not breaks == None:
+                Displayer = event.app.current_buffer
+                x = breaks.copy()
+                x.reverse()
+                for par in x:
+                    if par < Displayer.cursor_position:
+                        Displayer._set_cursor_position(par)
+                        break
+        except:
+            pass
     @kb.add('h')
     def prev_(event):
         nonlocal chapter, breaks
