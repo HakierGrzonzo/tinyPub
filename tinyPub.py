@@ -4,7 +4,7 @@ import fileinput, json
 import ebooklib
 import os, sys
 import prompt_toolkit as pt
-import htmlParser
+from htmlParser import Chapter
 from multiprocessing import pool, cpu_count
 
 __version__ = 'tinypub v.1'
@@ -12,7 +12,7 @@ log = list()
 
 
 def proccesChapter(item):
-    return htmlParser.parse(item, ['sup'])
+    return Chapter(item.get_body_content(), ignored_tags_ = ['sup']).text()
 
 def OpenFile(fname):
     book = epub.read_epub(fname)
@@ -50,7 +50,7 @@ def Settings():
 def Display(book, chapter = 0, cursor = 0):
 
     def makeDocument(chapter, cursor = 0):
-        text, breaks = htmlParser.wraper(chapter, generate_breaks = True)
+        text, breaks =  chapter
         try:
             return pt.document.Document(text = text, cursor_position = cursor), breaks
         except:
