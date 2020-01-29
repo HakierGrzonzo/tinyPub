@@ -2,13 +2,25 @@ from bs4 import BeautifulSoup, Tag
 import ebooklib, json
 import prompt_toolkit as pt
 
+def striper(string):
+    string = string.replace('\n', ' ')
+    if string.strip() == str():
+        return str()
+    else:
+        res = string.strip()
+        if string.endswith(' '):
+            res += ' '
+        if string.startswith(' '):
+            res = ' ' + string
+        return string
+
 def justify_formated_string(string, target_line_length = 78):
     space = ('', ' ')
-    doubleSpace = ('justified', '  ')
+    doubleSpace = ('class:whitespace', '  ')
+    string = remove_trailing_formated_whitespace(string)
     while string.count(space) > 0 and len_formated(string) < target_line_length:
         string[string.index(space)] = doubleSpace
     return string
-
 
 def len_formated(list):
     res = 0
@@ -18,7 +30,10 @@ def len_formated(list):
 
 def split_formated(text, split_by):
     res = []
-    for x in text[1].split(split_by):
+    splited = text[1].split(split_by)
+    for x in splited:
+        if len(res) > 0:
+            res.append(('', ' '))
         res.append((text[0], x))
     return res
 
@@ -29,7 +44,6 @@ def remove_trailing_formated_whitespace(list):
         else:
             break
     return list
-
 
 class Chapter(object):
     """Parses chapter html into string or list of dicts"""
@@ -64,7 +78,11 @@ class Chapter(object):
                         if child.name in self.newlineTags and allowed_to_insert_newlines:
                             res += [('', '\n')]
             else:
-                x = ('class:' + child.parent.name, child.replace('/n',' ').strip())
+                if child.parent.name == 'span':
+                    name = child.parent.parent.name
+                else:
+                    name = child.parent.name
+                x = ('class:' + name, striper(child))
                 if x[1] != str():
                     res.append(x)
         return res
@@ -90,26 +108,28 @@ class Chapter(object):
             else:
                 if not pseudoParagraphs[len(pseudoParagraphs) - 1] == []:
                     pseudoParagraphs.append([])
-        space = [('', ' ')]
         newline = [('', '\n')]
-        formated_preChar = [('preChar', preChar)]
+        formated_preChar = [('class:preChar', preChar)]
         for paragraph in pseudoParagraphs:
             line = formated_preChar.copy()
             text = []
             for x in paragraph:
                 for y in split_formated(x, ' '):
-                    if y[1] != '':
+                    try:
+                        last = text[len(text) - 1]
+                    except:
+                        last = None
+                    if y[1] != '' and not (last == ('', ' ') and y == ('', ' ')):
                         text.append(y)
-            punctuation = ['.', ',', '!', '?', ':', ';']
             for word in text:
-                if word[1][0] in punctuation:
-                    line[len(line) - 1] = word
-                    line += space
-                elif len_formated(line + [word]) < lineLength:
-                    line += [word] + space
+                if len_formated(line + [word]) < lineLength:
+                    line += [word]
                 else:
                     res += justify_formated_string(line) + newline
-                    line = formated_preChar + [word] + space
+                    line = formated_preChar.copy()
+                    if word != ('', ' '):
+                        line += [word]
+
             res += line + newline + newline
             breaks.append(len_formated(res) - 1)
         res = remove_trailing_formated_whitespace(res)
@@ -127,7 +147,7 @@ class Chapter(object):
             return pt.formatted_text.to_formatted_text(text[0]), text[1]
 
 defaultStyle = pt.styles.Style.from_dict({
-        'em': 'italic',
+        'em': 'bold',
         'h1': 'bold',
         'h2': 'bold',
         'blockquote': 'italic'
@@ -143,9 +163,8 @@ if __name__ == '__main__':
     for x in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
         print('\n------', id, '------\n')
         chapter = Chapter(x.get_body_content(), ['sup'])
-        # pt.print_formatted_text(chapter.formatedText(), style = defaultStyle)
-        text, breaks = chapter.text()
-        for b in breaks:
-            print('X', text[b-1:b+2], 'D', sep = '|')
+        text, breaks = chapter.formatedText()
+        pt.print_formatted_text(text, style = defaultStyle)
+        #print(json.dumps(text, indent = 4))
         id += 1
         input()
