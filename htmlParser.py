@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup, Tag
 import ebooklib, json
 import prompt_toolkit as pt
+from string import whitespace
 
 def striper(string):
     string = string.replace('\n', ' ')
@@ -8,9 +9,9 @@ def striper(string):
         return str()
     else:
         res = string.strip()
-        if string.endswith(' '):
+        if string[0] in whitespace:
             res += ' '
-        if string.startswith(' '):
+        if string[len(string) - 1] in whitespace:
             res = ' ' + string
         return string
 
@@ -38,12 +39,10 @@ def split_formated(text, split_by):
     return res
 
 def remove_trailing_formated_whitespace(list):
-    for x in range(len(list) - 2, -1, -1 ):
-        if list[x][1].strip() == str():
-            list.pop(x)
-        else:
-            break
-    return list
+    if list[len(list) - 1][1] in whitespace and len(list) > 2:
+        return list[:len(list) - 1]
+    else:
+        return list
 
 class Chapter(object):
     """Parses chapter html into string or list of dicts"""
@@ -132,9 +131,10 @@ class Chapter(object):
 
             res += line + newline + newline
             breaks.append(len_formated(res) - 1)
-        res = remove_trailing_formated_whitespace(res)
+        while res[len(res) - 1][1] in whitespace:
+            res = res[:len(res) - 1]
         breaks = breaks[:len(breaks) - 2]
-        breaks.append(len_formated(res) - 2)
+        breaks.append(len_formated(res))
         if res == newline:
             return None
         else:
@@ -164,7 +164,7 @@ if __name__ == '__main__':
         print('\n------', id, '------\n')
         chapter = Chapter(x.get_body_content(), ['sup'])
         text, breaks = chapter.formatedText()
-        pt.print_formatted_text(text, style = defaultStyle)
-        #print(json.dumps(text, indent = 4))
+        #pt.print_formatted_text(text, style = defaultStyle)
+        print(json.dumps(text, indent = 4))
         id += 1
         input()
