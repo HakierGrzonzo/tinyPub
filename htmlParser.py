@@ -49,7 +49,8 @@ class Chapter(object):
     def __init__(self,
             raw_,
             ignored_tags_ = [],
-            newlineTags_ = ['p', 'h1', 'h2', 'h3', 'dt', 'dd']
+            paragraphTags_ = ['p', 'h1', 'h2', 'h3', 'dt', 'dd'],
+            newlineTags_ = ['div']
         ):
         super(Chapter, self).__init__()
         """
@@ -59,23 +60,38 @@ class Chapter(object):
         """
         self.raw = raw_.decode('utf-8')
         self.soup = BeautifulSoup(self.raw, features='lxml')
-        self.ignored_tags = ignored_tags_
-        self.newlineTags = newlineTags_
+        self.ignored_tags = ignored_tags_.copy()
+        self.newlineTags = paragraphTags_.copy()
+        self.specialNeedsTags = newlineTags_.copy()
         self.contents = self.stylisticSoupWalker(self.soup)
     def stylisticSoupWalker(self, soup, allowed_to_insert_newlines = True):
         """
         soupWalker that returns a list of touples for prompt_toolkit
-        text formating.
+        text formating from epub's html.
         """
         res = list()
+        # Walk through html tree
         for child in soup.children:
+            # If tag -> walk over it's children and append the walking result
             if type(child) == Tag:
                 if child.name not in self.ignored_tags:
+                    # Get text from children
                     x = self.stylisticSoupWalker(child, not (child.name in self.newlineTags and allowed_to_insert_newlines))
                     if x != None or x[1] != str():
+                        """
+                            If the text is supposed to ba a paragraph -> make sure it is
+                            surrounded by newlines
+                        """
+                        try:
+                            if ((child.name in self.newlineTags and allowed_to_insert_newlines) or child.name in self.specialNeedsTags
+                                ) and res[len(res) -1] != ('', '\n'):
+                                res += [('', '\n')]
+                        except:
+                            pass
                         res += x
                         if child.name in self.newlineTags and allowed_to_insert_newlines:
                             res += [('', '\n')]
+            # If the child is text -> append non-empty text
             else:
                 if child.parent.name == 'span':
                     name = child.parent.parent.name
@@ -86,6 +102,7 @@ class Chapter(object):
                     res.append(x)
         return res
     def text(self):
+        """Returns text with basic formating"""
         res = str()
         a = self.wrapedContents()
         if a != None:
@@ -98,6 +115,7 @@ class Chapter(object):
         else:
             return None
     def wrapedContents(self, lineLength = 78, preChar = ' '):
+        """Returns a list of (style, text) touples of wrapped and justified text"""
         breaks = list()
         res = list()
         pseudoParagraphs = [[]]
@@ -131,8 +149,11 @@ class Chapter(object):
 
             res += line + newline + newline
             breaks.append(len_formated(res) - 1)
-        while res[len(res) - 1][1] in whitespace:
-            res = res[:len(res) - 1]
+        try:
+            while res[len(res) - 1][1] in whitespace:
+                res = res[:len(res) - 1]
+        except:
+            pass
         breaks = breaks[:len(breaks) - 2]
         breaks.append(len_formated(res))
         if res == newline:
@@ -140,6 +161,7 @@ class Chapter(object):
         else:
             return res, breaks
     def formatedText(self):
+        """Returns pt.formatedText()"""
         text = self.wrapedContents()
         if text == None:
             return None
@@ -154,17 +176,18 @@ defaultStyle = pt.styles.Style.from_dict({
     })
 
 if __name__ == '__main__':
+    # Used for parser dubuging
     debug = True
     from ebooklib import epub
-    testFile =  'test.epub'
+    testFile = ''
     book = epub.read_epub(testFile)
     id = 0
-
+    # Print chapter after chapter
     for x in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
         print('\n------', id, '------\n')
         chapter = Chapter(x.get_body_content(), ['sup'])
-        text, breaks = chapter.formatedText()
-        #pt.print_formatted_text(text, style = defaultStyle)
-        print(json.dumps(text, indent = 4))
+        text, breaks = chapter.text()
+        print(text[:500])
+        #print(json.dumps(text, indent = 4))
         id += 1
         input()

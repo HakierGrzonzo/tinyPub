@@ -7,7 +7,7 @@ import prompt_toolkit as pt
 from htmlParser import Chapter
 from multiprocessing import pool, cpu_count
 
-__version__ = 'tinypub v.1'
+__version__ = 'tinypub v.1.1'
 log = list()
 
 
