@@ -63,7 +63,16 @@ class Chapter(object):
         self.ignored_tags = ignored_tags_.copy()
         self.newlineTags = paragraphTags_.copy()
         self.specialNeedsTags = newlineTags_.copy()
-        self.contents = self.stylisticSoupWalker(self.soup)
+    def title(self):
+        return self.soup.find('title')
+    def hasBody(self):
+        body = self.soup.find('body')
+        if not body == None:
+            if len(body.get_text().strip()) > 1:
+                return True
+        return False
+    def contents(self):
+        return self.stylisticSoupWalker(self.soup.find('body'))
     def stylisticSoupWalker(self, soup, allowed_to_insert_newlines = True):
         """
         soupWalker that returns a list of touples for prompt_toolkit
@@ -119,7 +128,7 @@ class Chapter(object):
         breaks = list()
         res = list()
         pseudoParagraphs = [[]]
-        for text in self.contents:
+        for text in self.contents():
             if text[1] != '\n':
                 pseudoParagraphs[len(pseudoParagraphs) - 1].append(text)
             else:
@@ -179,15 +188,18 @@ if __name__ == '__main__':
     # Used for parser dubuging
     debug = True
     from ebooklib import epub
-    testFile = ''
+    testFile = 'The Rise of Kyoshi.epub'
     book = epub.read_epub(testFile)
     id = 0
     # Print chapter after chapter
     for x in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
         print('\n------', id, '------\n')
-        chapter = Chapter(x.get_body_content(), ['sup'])
-        text, breaks = chapter.text()
-        print(text[:500])
-        #print(json.dumps(text, indent = 4))
+        chapter = Chapter(x.content, ['sup'])
+        print(chapter.hasBody())
+        try:
+            text, breaks = chapter.text()
+            print(text[:2000])
+        except:
+            pass
         id += 1
         input()
