@@ -50,7 +50,8 @@ class Chapter(object):
             raw_,
             ignored_tags_ = [],
             paragraphTags_ = ['p', 'h1', 'h2', 'h3', 'dt', 'dd'],
-            newlineTags_ = ['div']
+            newlineTags_ = ['div'],
+            lineLength = 78
         ):
         super(Chapter, self).__init__()
         """
@@ -63,6 +64,7 @@ class Chapter(object):
         self.ignored_tags = ignored_tags_.copy()
         self.newlineTags = paragraphTags_.copy()
         self.specialNeedsTags = newlineTags_.copy()
+        self.lineLength = lineLength
     def title(self):
         return self.soup.find('title')
     def hasBody(self):
@@ -118,14 +120,15 @@ class Chapter(object):
             for x in a[0]:
                 res += x[1]
             if res.strip() == str():
-                return None
+                return 'Nothing here, empty chapter', list()
             else:
                 return res, a[1]
         else:
-            return None
-    def wrapedContents(self, lineLength = 78, preChar = ' '):
+            return 'Nothing here, empty chapter', list()
+    def wrapedContents(self, preChar = ' '):
         """Returns a list of (style, text) touples of wrapped and justified text"""
-        breaks = list()
+        lineLength = self.lineLength
+        breaks = [0]
         res = list()
         pseudoParagraphs = [[]]
         for text in self.contents():
@@ -136,6 +139,7 @@ class Chapter(object):
                     pseudoParagraphs.append([])
         newline = [('', '\n')]
         formated_preChar = [('class:preChar', preChar)]
+        line_number = 0
         for paragraph in pseudoParagraphs:
             line = formated_preChar.copy()
             text = []
@@ -151,20 +155,19 @@ class Chapter(object):
                 if len_formated(line + [word]) < lineLength:
                     line += [word]
                 else:
-                    res += justify_formated_string(line) + newline
+                    res += justify_formated_string(line, lineLength) + newline
                     line = formated_preChar.copy()
+                    line_number += 1
                     if word != ('', ' '):
                         line += [word]
-
             res += line + newline + newline
-            breaks.append(len_formated(res) - 1)
+            line_number += 2
+            breaks.append(line_number - 1)
         try:
             while res[len(res) - 1][1] in whitespace:
                 res = res[:len(res) - 1]
         except:
             pass
-        breaks = breaks[:len(breaks) - 2]
-        breaks.append(len_formated(res))
         if res == newline:
             return None
         else:
@@ -194,7 +197,7 @@ if __name__ == '__main__':
     # Print chapter after chapter
     for x in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
         print('\n------', id, '------\n')
-        chapter = Chapter(x.content, ['sup'])
+        chapter = Chapter(x.content, ['sup'], lineLength = 80)
         print(chapter.hasBody())
         try:
             text, breaks = chapter.text()
