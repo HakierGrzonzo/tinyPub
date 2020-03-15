@@ -123,7 +123,7 @@ class Book(object):
                 x['chapter'] = chapter
                 self.chapters.append(x)
         self.configEntry = config.get('books').get(self.title(), dict())
-        self.chapterIndex = self.configEntry.get('chapter', 0)
+        self.chapterIndex = self.configEntry.get('chapter', 1)
         self.XcursorPos = self.configEntry.get('cursorX', 0)
         self.YcursorPos = self.configEntry.get('cursorY', 0)
         self.addnotations = self.configEntry.get('addnotations', dict()).get(self.chapterIndex, list())
