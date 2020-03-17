@@ -112,7 +112,7 @@ class Displayer(pycui.widgets.ScrollTextBlock):
         reverseKeybinds = dict()
         for k, v in self.keybinds.items():
             reverseKeybinds[v] = k
-        self.set_focus_text('t - Table of contents | ' + reverseKeybinds['prev'] + ', ' + reverseKeybinds['next'] + ' - change chapter | a - add addnotation on cursor | ' + reverseKeybinds['up'] + ', ' + reverseKeybinds['down'] + ' - fast scroll | Esc - select widget')
+        self.set_focus_text('t - Table of contents | ' + reverseKeybinds['prev'] + ', ' + reverseKeybinds['next'] + ' - change chapter | a - add note on cursor | ' + reverseKeybinds['up'] + ', ' + reverseKeybinds['down'] + ' - fast scroll | Esc - select widget')
         # set initial cursor position according to saved entry in config
         last = None
         while self.cursor_text_pos_y < self.book.XcursorPos:
@@ -328,7 +328,7 @@ class Interface:
             self.textDisplayer = self.master.add_Displayer('' ,row = 0, column = 0, row_span = 5, column_span = self.master.grid.num_columns, book = self.book)
         if min_columns + 2 < self.master.grid.num_columns:
             self.addnotationsAllowed = True
-            self.addnotationsMenu = self.master.add_Adnotation_menu('Adnotations', row = 0, column = min_columns, row_span = 5, column_span = self.master.grid.num_columns - min_columns)
+            self.addnotationsMenu = self.master.add_Adnotation_menu('Notes', row = 0, column = min_columns, row_span = 5, column_span = self.master.grid.num_columns - min_columns)
             self.textDisplayer.add_key_command(pycui.keys.KEY_A_LOWER, self.add_adnotation)
             self.textDisplayer.addnotationDisplayer = self.addnotationsMenu
             self.addnotationsMenu.Displayer = self.textDisplayer
