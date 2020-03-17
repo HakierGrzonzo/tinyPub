@@ -167,7 +167,7 @@ class Displayer(pycui.widgets.ScrollTextBlock):
     def add_adnotation_on_cursor(self, text):
         """adds addnotation in paragraph where cursor is located"""
         adnotation = self.book.add_adnotation(text, self.cursor_text_pos_y, self.breaks)
-        if not self.addnotationDisplayer == None
+        if not self.addnotationDisplayer == None:
             self.addnotationDisplayer.add_adnotation(adnotation)
     def getTOC(self):
         """generates dict: TOC entry -> chapterIndex for Book()"""
@@ -364,9 +364,10 @@ class Interface:
 if __name__ == '__main__':
     # set default path for config
     configPath = os.path.expanduser('~/.tinypub.json')
-    parser = argparse.ArgumentParser(description = 'A crude epub reader.')
+    parser = argparse.ArgumentParser(description = 'A simple ebook reader with console interface by Grzegorz Koperwas', prog = 'tinyPub', epilog = 'Configuration and reading progress is stored in ~/.tinypub.json', allow_abbrev = True)
     parser.add_argument('file', type = str, help = 'Path to .epub file.', metavar = 'file_path')
-    parser.add_argument('--config', dest='config', type = str, help = 'Path to alternative config file', default = configPath, metavar = 'path')
+    parser.add_argument('--config', dest='config', type = str, help = 'Path to alternative config file', default = configPath, metavar = 'PATH')
+    parser.add_argument('--version', action='version', version = __version__)
     args = parser.parse_args()
     # read config, on failure, assume defaults
     try:

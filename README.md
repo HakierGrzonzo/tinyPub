@@ -1,26 +1,22 @@
 # tinyPub.py
 
-A crude, prompt_toolkit based, python *.epub* reader.
+A simple, [py_cui](https://github.com/jwlodek/py_cui) based, terminal ebook reader for .epub files.
 
-It keeps track of your reading progress in a .tinyPub.json file in your home directory.
+Features:
+
+- Your cursor should be exactly where you left it, as your progress is tracked in ~/.tinypub.json file
+- You can create short notes, and quickly jump to them.
 
 ## How to use:
 
-Just run it with your *.epub* file as an argument:
+Run it with your ebook's epub file as an artgument.
 
-```
-./tinyPub.py <path to ebook>
-```
+On the bottom of your screen you will see help messages.
 
-It works on linux, maybe works on windows.
+You can use cursor keys to move the cursor, you can use "k" and "j" keys to jump to next paragraph break.
 
-### Keybindings:
+You can use "h" and "l" keys to switch between chapters.
 
-|   h    | previous chapter                      |
-| :----: | ------------------------------------- |
-|   l    | next chapter                          |
-|   j    | move cursor to the previous paragraph |
-|   k    | move the cursor to the next paragraph |
-| arrows | move the cursor                       |
-| crtl-q | quit tinyPub (and save progress)      |
+Pressing "t" opens up Table of Contents.
 
+Pressing "a" allows you to add a note at cursor.

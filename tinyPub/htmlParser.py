@@ -1,6 +1,5 @@
 from bs4 import BeautifulSoup, Tag
 import ebooklib, json
-import prompt_toolkit as pt
 from string import whitespace
 
 def striper(string):
@@ -173,20 +172,6 @@ class Chapter(object):
             return None
         else:
             return res, breaks
-    def formatedText(self):
-        """Returns pt.formatedText()"""
-        text = self.wrapedContents()
-        if text == None:
-            return None
-        else:
-            return pt.formatted_text.to_formatted_text(text[0]), text[1]
-
-defaultStyle = pt.styles.Style.from_dict({
-        'em': 'bold',
-        'h1': 'bold',
-        'h2': 'bold',
-        'blockquote': 'italic'
-    })
 
 if __name__ == '__main__':
     # Used for parser dubuging
