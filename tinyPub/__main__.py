@@ -3,12 +3,12 @@
 A python .epub ebook reader
 Used to be based on prompt_toolkit, but since version 1.9 is based on py_cui.
 """
-from htmlParser import Chapter
+from tinyPub.htmlParser import Chapter
 import py_cui as pycui
 from ebooklib import epub
 import json, os, ebooklib, argparse
 from multiprocessing import Pool, cpu_count
-from navParser import parse_navigation
+from tinyPub.navParser import parse_navigation
 
 __version__ = '1.9'
 # Debug functions
@@ -361,7 +361,8 @@ class Interface:
         self.addnotationsMenu.handle_adnotation()
         self.master.move_focus(self.textDisplayer)
 
-if __name__ == '__main__':
+def main():
+    global config
     # set default path for config
     configPath = os.path.expanduser('~/.tinypub.json')
     parser = argparse.ArgumentParser(description = 'A simple ebook reader with console interface by Grzegorz Koperwas', prog = 'tinyPub', epilog = 'Configuration and reading progress is stored in ~/.tinypub.json', allow_abbrev = True)
@@ -399,3 +400,7 @@ if __name__ == '__main__':
     # After exit write to config file
     with open(args.config, 'w+') as f:
         f.write(json.dumps(config, indent = 4))
+
+config = None
+if __name__ == '__main__':
+    main()

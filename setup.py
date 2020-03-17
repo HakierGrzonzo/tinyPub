@@ -5,7 +5,7 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name = "tinypub-HakierGrzonzo",
-    version = "1.9",
+    version = "1.9.1.2",
     author = "Grzegorz Koperwas",
     author_email = "Grzegorz.Koperwas.dev@gmail.com",
     description = "A console based epub ebook reader.",
@@ -20,5 +20,10 @@ setuptools.setup(
         "Development Status :: 4 - Beta",
         "Intended Audience :: End Users/Desktop"
     ],
+    entry_points={
+        'console_scripts': [
+            'tinypub=tinyPub.__main__:main'
+          ]
+    },
     python_requires='>=3.8.1'
 )
