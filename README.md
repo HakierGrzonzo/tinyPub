@@ -4,6 +4,10 @@
 
 A simple, [py_cui](https://github.com/jwlodek/py_cui) based, terminal ebook reader for .epub files.
 
+```
+pip install tinypub-HakierGrzonzo
+```
+
 Features:
 
 - Your cursor should be exactly where you left it, as your progress is tracked in ~/.tinypub.json file
