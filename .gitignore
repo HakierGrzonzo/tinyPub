@@ -125,3 +125,5 @@ dmypy.json
 
 # Repository specific
 *.epub
+
+.directory

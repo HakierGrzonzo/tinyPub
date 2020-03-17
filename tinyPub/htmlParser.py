@@ -1,6 +1,5 @@
 from bs4 import BeautifulSoup, Tag
 import ebooklib, json
-import prompt_toolkit as pt
 from string import whitespace
 
 def striper(string):
@@ -50,20 +49,32 @@ class Chapter(object):
             raw_,
             ignored_tags_ = [],
             paragraphTags_ = ['p', 'h1', 'h2', 'h3', 'dt', 'dd'],
-            newlineTags_ = ['div']
+            newlineTags_ = ['div'],
+            lineLength = 78
         ):
         super(Chapter, self).__init__()
         """
             raw_ - raw html
             ignored_tags_ - list of tags to ignore and skip
-            newlineTags_ - list of tags that should be paragraphs
+            newlineTags_ - list of tags that should force newlines
+            paragraphTags_ - list of tags that should be paragraphs
         """
         self.raw = raw_.decode('utf-8')
         self.soup = BeautifulSoup(self.raw, features='lxml')
         self.ignored_tags = ignored_tags_.copy()
         self.newlineTags = paragraphTags_.copy()
         self.specialNeedsTags = newlineTags_.copy()
-        self.contents = self.stylisticSoupWalker(self.soup)
+        self.lineLength = lineLength
+    def title(self):
+        return self.soup.find('title')
+    def hasBody(self):
+        body = self.soup.find('body')
+        if not body == None:
+            if len(body.get_text().strip()) > 1:
+                return True
+        return False
+    def contents(self):
+        return self.stylisticSoupWalker(self.soup.find('body'))
     def stylisticSoupWalker(self, soup, allowed_to_insert_newlines = True):
         """
         soupWalker that returns a list of touples for prompt_toolkit
@@ -109,17 +120,18 @@ class Chapter(object):
             for x in a[0]:
                 res += x[1]
             if res.strip() == str():
-                return None
+                return 'Nothing here, empty chapter', list()
             else:
                 return res, a[1]
         else:
-            return None
-    def wrapedContents(self, lineLength = 78, preChar = ' '):
+            return 'Nothing here, empty chapter', list()
+    def wrapedContents(self, preChar = ' '):
         """Returns a list of (style, text) touples of wrapped and justified text"""
-        breaks = list()
+        lineLength = self.lineLength
+        breaks = [0]
         res = list()
         pseudoParagraphs = [[]]
-        for text in self.contents:
+        for text in self.contents():
             if text[1] != '\n':
                 pseudoParagraphs[len(pseudoParagraphs) - 1].append(text)
             else:
@@ -127,6 +139,7 @@ class Chapter(object):
                     pseudoParagraphs.append([])
         newline = [('', '\n')]
         formated_preChar = [('class:preChar', preChar)]
+        line_number = 0
         for paragraph in pseudoParagraphs:
             line = formated_preChar.copy()
             text = []
@@ -142,52 +155,40 @@ class Chapter(object):
                 if len_formated(line + [word]) < lineLength:
                     line += [word]
                 else:
-                    res += justify_formated_string(line) + newline
+                    res += justify_formated_string(line, lineLength) + newline
                     line = formated_preChar.copy()
+                    line_number += 1
                     if word != ('', ' '):
                         line += [word]
-
             res += line + newline + newline
-            breaks.append(len_formated(res) - 1)
+            line_number += 2
+            breaks.append(line_number - 1)
         try:
             while res[len(res) - 1][1] in whitespace:
                 res = res[:len(res) - 1]
         except:
             pass
-        breaks = breaks[:len(breaks) - 2]
-        breaks.append(len_formated(res))
         if res == newline:
             return None
         else:
             return res, breaks
-    def formatedText(self):
-        """Returns pt.formatedText()"""
-        text = self.wrapedContents()
-        if text == None:
-            return None
-        else:
-            return pt.formatted_text.to_formatted_text(text[0]), text[1]
-
-defaultStyle = pt.styles.Style.from_dict({
-        'em': 'bold',
-        'h1': 'bold',
-        'h2': 'bold',
-        'blockquote': 'italic'
-    })
 
 if __name__ == '__main__':
     # Used for parser dubuging
     debug = True
     from ebooklib import epub
-    testFile = ''
+    testFile = 'The Rise of Kyoshi.epub'
     book = epub.read_epub(testFile)
     id = 0
     # Print chapter after chapter
     for x in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
         print('\n------', id, '------\n')
-        chapter = Chapter(x.get_body_content(), ['sup'])
-        text, breaks = chapter.text()
-        print(text[:500])
-        #print(json.dumps(text, indent = 4))
+        chapter = Chapter(x.content, ['sup'], lineLength = 80)
+        print(chapter.hasBody())
+        try:
+            text, breaks = chapter.text()
+            print(text[:2000])
+        except:
+            pass
         id += 1
         input()
