@@ -57,7 +57,8 @@ class Chapter(object):
         """
             raw_ - raw html
             ignored_tags_ - list of tags to ignore and skip
-            newlineTags_ - list of tags that should be paragraphs
+            newlineTags_ - list of tags that should force newlines
+            paragraphTags_ - list of tags that should be paragraphs
         """
         self.raw = raw_.decode('utf-8')
         self.soup = BeautifulSoup(self.raw, features='lxml')
