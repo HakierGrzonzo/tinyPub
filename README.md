@@ -7,6 +7,10 @@ A simple, [py_cui](https://github.com/jwlodek/py_cui) based, terminal ebook read
 ```
 pip install tinypub-HakierGrzonzo
 ```
+and then you should be able to use it with:
+```
+tinypub <path to file>
+```
 
 Features:
 
