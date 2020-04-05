@@ -3,14 +3,14 @@
 A python .epub ebook reader
 Used to be based on prompt_toolkit, but since version 1.9 is based on py_cui.
 """
-from tinyPub.htmlParser import Chapter
+from .htmlParser import Chapter, StyleHandler
 import py_cui as pycui
 from ebooklib import epub
 import json, os, ebooklib, argparse
 from multiprocessing import Pool, cpu_count
-from tinyPub.navParser import parse_navigation
+from .navParser import parse_navigation
 
-__version__ = '1.9'
+__version__ = '2.0'
 # Debug functions
 log = list()
 def pp(arg):
@@ -223,8 +223,11 @@ class Book(object):
             raise ValueError('Exception while importing epub:', str(e))
         # initialize chapters in dict: file_name_in_epub -> chapter
         chapters = dict()
+        styles = dict()
+        for x in self.book.get_items_of_type(ebooklib.ITEM_STYLE):
+            styles[x.file_name] = StyleHandler(x.get_content())
         for item in self.book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
-            chapter = Chapter(item.content, ['sup'], lineLength = config.get('lineLength', 78))
+            chapter = Chapter(item.content, ['sup'], lineLength = config.get('lineLength', 78), css_data = styles)
             # ignore empty ones
             if chapter.hasBody:
                 chapters[item.file_name] = chapter
