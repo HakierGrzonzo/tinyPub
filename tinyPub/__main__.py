@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 A python .epub ebook reader
 Used to be based on prompt_toolkit, but since version 1.9 is based on py_cui.
