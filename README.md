@@ -1,6 +1,6 @@
 # tinyPub.py
 
-![This thing in action](https://i.imgur.com/Bfxw5KS.png)
+![This thing in action](Screenshot.png)
 
 A simple, [py_cui](https://github.com/jwlodek/py_cui) based, terminal ebook reader for .epub files.
 
@@ -17,6 +17,7 @@ Features:
 - Your cursor should be exactly where you left it, as your progress is tracked in ~/.tinypub.json file
 - You can create short notes, and quickly jump to them.
 - Somewhat scalable interface. I mean, it works on startup…
+- In house parser for *HTML* that can use css to format text.
 
 ## How to use:
 
