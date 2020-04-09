@@ -184,8 +184,9 @@ def style_to_dict(styleString) -> dict:
 
 class StyleHandler(object):
     """Handles css decoding and style requests for given bs4.Tag"""
-    def __init__(self, styleString = str(), styleDict = dict()):
+    def __init__(self, styleString = str(), styleDict = dict(), force_justify_on_p_tags = False):
         super(StyleHandler, self).__init__()
+        self.force_justify_on_p_tags = force_justify_on_p_tags
         # if no styleDict was given → decode styleString
         if styleDict == dict():
             self.styleDict = style_to_dict(styleString)
@@ -218,6 +219,9 @@ class StyleHandler(object):
                 style[k] = v
         # decodes and returns Margins() in special entry
         style['margins'] = Margins(style)
+        # force text-align: justify for p tags if requested
+        if tag.name == 'p' and self.force_justify_on_p_tags:
+            style['text-align'] = 'justify'
         return style
     def copy(self):
         """Returns deepcopy of self"""

@@ -227,10 +227,18 @@ class Book(object):
         for x in self.book.get_items_of_type(ebooklib.ITEM_STYLE):
             styles[x.file_name] = StyleHandler(x.get_content())
         for item in self.book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
-            chapter = Chapter(item.content, ['sup'], lineLength = config.get('lineLength', 78), css_data = styles)
+            chapter = Chapter(
+                item.content,
+                ['sup'],
+                lineLength = config.get('lineLength', 78),
+                css_data = styles,
+                force_justify_on_p_tags= config.get('force_justify_on_p_tags', False)
+            )
             # ignore empty ones
-            if chapter.hasBody:
+            if chapter.hasBody():
                 chapters[item.file_name] = chapter
+            else:
+                raise Exception('breakpoint')
         # order chapters according to toc.ncx in epub
         try:
             navigation = list(self.book.get_items_of_type(ebooklib.ITEM_NAVIGATION))[0]
@@ -387,7 +395,8 @@ def main():
                 'j': 'down',
                 'k': 'up',
                 'l': 'next'
-            }
+            },
+            'force_justify_on_p_tags': False
         }
     # load ebook
     book = Book(args.file)
@@ -403,6 +412,7 @@ def main():
     # After exit write to config file
     with open(args.config, 'w+') as f:
         f.write(json.dumps(config, indent = 4))
+    print('done!')
 
 config = None
 if __name__ == '__main__':

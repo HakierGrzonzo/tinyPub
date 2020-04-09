@@ -29,27 +29,32 @@ class Chapter(object):
             target max lineLength
         css_data: list of Style
             list with style objects to be used
+        force_justify_on_p_tags: bool
+            forces 'text-align: justify' for all <p> tags
         """
 
     def __init__(self,
             raw_,
             ignored_tags_ = [],
             lineLength = 78,
-            css_data = dict()):
+            css_data = dict(),
+            force_justify_on_p_tags = False):
         super(Chapter, self).__init__()
         self.ignored_tags = ignored_tags_
         self.soup = BeautifulSoup(raw_.decode('utf-8'), features='lxml')
         self.width = lineLength
         self.css = baseStyle.copy()
+        self.css.force_justify_on_p_tags = force_justify_on_p_tags
         for link in self.soup.find_all('link'):
             self.css.overwrite(css_data.get(link.get('href')))
     def title(self):
         return self.soup.find('title')
     def hasBody(self):
         body = self.soup.find('body')
-        if not body == None:
-            if len(body.string.strip()) > 1:
-                return True
+        if body == None:
+            return False
+        if len(body.get_text().strip()) > 0:
+            return True
         return False
     def contents(self):
         return self.soup.find('body')
@@ -87,5 +92,5 @@ if __name__ == '__main__':
     for x in book.get_items_of_type(ebooklib.ITEM_STYLE):
         styles[x.file_name] = StyleHandler(x.get_content())
     for x in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
-        chapter = Chapter(x.content, css_data = styles, width = 78, ignored_tags_ = ['sup'])
+        chapter = Chapter(x.content, css_data = styles, lineLength=78, ignored_tags_ = ['sup'])
         chapter.text()

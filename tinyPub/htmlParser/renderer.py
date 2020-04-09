@@ -1,6 +1,6 @@
 from .styles import Margins, unitConverter
 from bs4 import Tag
-from .textFormater import bold, italic
+from .textFormater import bold, italic, justify
 
 def debug_printer(item):
     """returns a nice string representationof element() tree, for debugging"""
@@ -29,13 +29,6 @@ class text():
     def render(self, force_inline = False):
         """force_inline is unused, returns self.string"""
         return self.string
-
-def len_str_list(lis):
-    """returns sum of lengths of strings in list()"""
-    res = 0
-    for x in lis:
-        res += len(x)
-    return res + len(lis) - 1
 
 class element():
     """Represents any block elements in html
@@ -126,30 +119,13 @@ class element():
             # append line that was left at the end
             lines.append(current_line)
             # handle text alingment
-            alingment = self.style.get('text-align')
+            alingment = self.style.get('text-align', 'justify')
             if alingment == 'center':
                 lines = [x.center(self.content_width()) for x in lines]
             elif alingment == 'right':
                 lines = [x.rjust(self.content_width()) for x in lines]
             elif alingment == 'justify':
-                # TODO: is this working?
-                new_lines = list()
-                for line in lines[:len(lines) - 1]:
-                    line = line.split(' ')
-                    i = 0
-                    while len_str_list(line) + len(line) - 1 < self.content_width():
-                        try:
-                            line[i] += ' '
-                            i += 1
-                        except IndexError:
-                            break
-                    new_line = str()
-                    for word in line[:len(line) - 1]:
-                        new_line += word + ' '
-                    new_line += line[len(line) - 1]
-                    new_lines.append(new_line)
-                new_lines.append(lines[len(lines) - 1])
-                lines = new_lines
+                lines = justify(lines, self.content_width())
             elif alingment == 'left':
                 lines = [x.ljust(self.content_width()) for x in lines]
             # convert lines to one string

@@ -37,3 +37,44 @@ def bolditalic(string):
     for char in string:
         res += bold_italic_dict.get(char, char)
     return res
+
+def len_str_list(lis):
+    """returns sum of lengths of strings in list()"""
+    res = 0
+    for x in lis:
+        res += len(x)
+    return res
+
+def justify(lines, line_length):
+    # TODO: is this working?
+    new_lines = list()
+    for line in lines[:len(lines) - 1]:
+        line = line.split(' ')
+        i = 0
+        while len_str_list(line) + len(line) - 1 < line_length:
+            try:
+                line[i] += ' '
+                i += 1
+            except IndexError:
+                break
+        new_line = str()
+        for word in line[:len(line) - 1]:
+            new_line += word + ' '
+        new_line += line[len(line) - 1]
+        new_lines.append(new_line)
+    new_lines.append(lines[len(lines) - 1])
+    return new_lines
+
+if __name__ == "__main__":
+    text = """
+After almost four years of distance, Callum and Rayla are set to meet again.
+The traitor Viren is still nowhere to be found. x xx xx xx xxx
+A true sequel to Hard Priorities. x x x x x xx xx  xx xx xxxxx xx
+Rated explicit due to sparse descriptions of consensual, loving intimacy.
+    """
+    lines = text.split('\n')
+    lines = justify(lines, max([len(x) for x in lines]))
+    string = str()
+    for x in lines:
+        string += x + '\n'
+    print(string)
