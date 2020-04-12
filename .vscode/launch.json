@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/entrypoint.py",
+            "console": "integratedTerminal",
+            "args": ["${workspaceFolder}/tests/pan.epub"],
+            "justMyCode": true
+        }
+    ]
+}

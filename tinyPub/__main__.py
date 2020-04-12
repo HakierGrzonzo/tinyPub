@@ -9,47 +9,13 @@ from ebooklib import epub
 import json, os, ebooklib, argparse
 from multiprocessing import Pool, cpu_count
 from .navParser import parse_navigation
+from .addnotation import Addnotation, Adnotation_menu
 
-__version__ = '2.0'
+__version__ = '2.0.1'
 # Debug functions
 log = list()
 def pp(arg):
     print(json.dumps(arg, indent = 4))
-
-class Addnotation():
-    """Represents adnotation
-
-    Parameters
-    ----------
-    breaks: list
-        list containing paragraph breaks, so each adnotation is bound to paragraph
-    text: str
-        text for addnotation
-    position: int
-        cursor_text_pos_y form Displayer()
-    dict: dict
-        can be used instead of text&position, used for loading from config
-    """
-    def __init__(self, breaks, text = str(), position = -1, dict = dict()):
-        """constructor for Addnotation()"""
-        self.text = dict.get('text', text)
-        pos = 0
-        if position != -1:
-            i = 1
-            while True:
-                if breaks[i] > position:
-                    pos = i - 1
-                    break
-                i += 1
-        self.pos = dict.get('position', pos)
-        self.breaks = breaks
-    def raw_pos(self):
-        """converts relative pos to cursor_text_pos_y for use in Displayer()"""
-        return self.breaks[self.pos]
-    def dump(self):
-        """converts addnotation to dict for storage"""
-        return {'position': self.pos, 'text': self.text}
-
 
 class impPYCUI(pycui.PyCUI):
     """py_cui.PyCUI but with add methods for mine classes"""
@@ -70,41 +36,15 @@ class impPYCUI(pycui.PyCUI):
             self.set_selected_widget(id)
         return new_adnotation_menu
 
-class Adnotation_menu(pycui.widgets.ScrollMenu):
-    """ScrollMenu but with methods to return objects form dict"""
-    def __init__(self, id, title, grid, row, column, row_span, column_span, padx, pady):
-        super(Adnotation_menu, self).__init__(id, title, grid, row, column, row_span, column_span, padx, pady)
-        # Dict for: entry in ScrollMenu -> object
-        self.decoding_dict = dict()
-        self.Displayer = None
-        self.set_focus_text('Press enter to jump to selected item.')
-    def add_adnotation(self, adnotation):
-        """Adds Addnotation() to menu, sorts addnotations based on position"""
-        adnotations = list([self.decoding_dict[v] for v in self.get_item_list()])
-        adnotations.append(adnotation)
-        adnotations.sort(key = lambda item: item.pos)
-        self.decoding_dict = dict()
-        res = list()
-        for a in adnotations:
-            text = str(len(res) + 1) + '. ' + a.text
-            self.decoding_dict[text] = a
-            res.append(text)
-        self.clear()
-        self.add_item_list(res)
-    def handle_adnotation(self):
-        """Returns selected Addnotation()"""
-        adnotation = self.decoding_dict[self.get()]
-        self.Displayer.jump_to_line(adnotation.raw_pos())
-
 class Displayer(pycui.widgets.ScrollTextBlock):
     """basicly py_cui Text_block that is read only and has some glue for Book()"""
     def __init__(self, id, title, grid, row, column, row_span, column_span, padx, pady, book):
         global config
         self.book = book
         # set title according to book's chapter title
-        text, self.breaks, self.title = self.book.chapter_returner()
+        text, self.breaks, self.org_title = self.book.chapter_returner()
         # pass all parameters and chapter's text to parent class
-        super(Displayer, self).__init__(id, self.title, grid, row, column, row_span, column_span, padx, pady, text)
+        super(Displayer, self).__init__(id, self.org_title, grid, row, column, row_span, column_span, padx, pady, text)
         # get keybindings from config, I know it is not supposed to work like that, but it works
         self.keybinds = config.get('keybindings', {'h': 'prev', 'j': 'down', 'k': 'up', 'l': 'next'})
         self.addnotationDisplayer = None
@@ -126,30 +66,35 @@ class Displayer(pycui.widgets.ScrollTextBlock):
             self.move_right()
             if last == self.cursor_text_pos_x:
                 break
+        self.append_progress_to_title()
     def insert_char(self, key_pressed):
         """hijack insert_char to handle some keybindings"""
         action = self.keybinds.get(chr(key_pressed))
         if action == 'prev':
             # switch chapter to previous one
-            text, self.breaks, self.title = self.book.select_prev_chapter()
+            text, self.breaks, self.org_title = self.book.select_prev_chapter()
             self.set_text(text)
             self.load_adnotations()
+            self.append_progress_to_title()
         if action == 'next':
             # switch chapter to next one
-            text, self.breaks, self.title = self.book.select_next_chapter()
+            text, self.breaks, self.org_title = self.book.select_next_chapter()
             self.set_text(text)
             self.load_adnotations()
+            self.append_progress_to_title()
         # jump to paragraph break
         if action == 'down':
             for x in self.breaks:
                 if x > self.cursor_text_pos_y:
                     self.jump_to_line(x)
                     break
+            self.append_progress_to_title()
         if action == 'up':
             for x in self.breaks[::-1]:
                 if x < self.cursor_text_pos_y:
                     self.jump_to_line(x)
                     break
+            self.append_progress_to_title()
     def handle_delete(self):
         pass
     def handle_backspace(self):
@@ -181,12 +126,15 @@ class Displayer(pycui.widgets.ScrollTextBlock):
         """change chapter to identifier"""
         try:
             num = self.getTOC()[identifier] - 1
-            text, self.breaks, self.title = self.book.select_chapter(num)
+            text, self.breaks, self.org_title = self.book.select_chapter(num)
             self.set_text(text)
             self.load_adnotations()
+            self.append_progress_to_title()
         except Exception as e:
             global log
             log.append('force_chapter: ' + str(e))
+    def append_progress_to_title(self):
+        self.title = self.org_title + ' '+ str(max(round(100*self.cursor_text_pos_y / len(self.text_lines)), 0)) + '%'
     def jump_to_line(self, line):
         """change cursor_text_pos_y to line"""
         if self.cursor_text_pos_y > line:
@@ -205,6 +153,12 @@ class Displayer(pycui.widgets.ScrollTextBlock):
                 if last == self.cursor_text_pos_y:
                     # if position has not changed, abort
                     break
+    def move_up(self):
+        super().move_up()
+        self.append_progress_to_title()
+    def move_down(self):
+        super().move_down()
+        self.append_progress_to_title
 
 class Book(object):
     """A wrapper class that represents ebook with its htmlParser.chapter-s and addnotations
@@ -268,7 +222,7 @@ class Book(object):
         text, breaks = self.chapters[self.chapterIndex]['chapter'].text()
         addnotations = self.configEntry.get('addnotations', dict()).get(str(self.chapterIndex), list())
         self.addnotations = [Addnotation(breaks, dict = x) for x in addnotations]
-        return text, breaks, self.chapters[self.chapterIndex]['title']
+        return text, breaks, str(self.chapters[self.chapterIndex]['title']) + ' ({}/{})'.format(self.chapterIndex + 1, len(self.chapters))
     def title(self):
         """returns book's title"""
         return self.book.get_metadata('DC', 'title')[0][0]
