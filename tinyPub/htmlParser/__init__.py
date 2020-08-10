@@ -48,7 +48,7 @@ class Chapter(object):
         for link in self.soup.find_all('link'):
             self.css.overwrite(css_data.get(link.get('href')))
     def title(self):
-        return self.soup.find('title')
+        return self.soup.find('title').text.strip()
     def hasBody(self):
         body = self.soup.find('body')
         if body == None:
