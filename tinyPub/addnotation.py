@@ -35,8 +35,8 @@ class Addnotation():
 
 class Adnotation_menu(pycui.widgets.ScrollMenu):
     """ScrollMenu but with methods to return objects form dict"""
-    def __init__(self, id, title, grid, row, column, row_span, column_span, padx, pady):
-        super(Adnotation_menu, self).__init__(id, title, grid, row, column, row_span, column_span, padx, pady)
+    def __init__(self, id, title, grid, row, column, row_span, column_span, padx, pady, logger):
+        super(Adnotation_menu, self).__init__(id, title, grid, row, column, row_span, column_span, padx, pady, logger)
         # Dict for: entry in ScrollMenu -> object
         self.decoding_dict = dict()
         self.Displayer = None
