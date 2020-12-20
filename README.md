@@ -21,7 +21,7 @@ Features:
 
 ## How to use:
 
-Run it with your ebook's epub file as an artgument.
+Run it with your ebook's epub file as an argument.
 
 On the bottom of your screen you will see help messages.
 
