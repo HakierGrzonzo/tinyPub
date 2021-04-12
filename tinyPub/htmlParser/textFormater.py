@@ -1,3 +1,4 @@
+from random import shuffle
 # converts text to unicode pseudo-fonts
 normal_text = u'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM'
 # bold_text = u'𝗾𝘄𝗲𝗿𝘁𝘆𝘂𝗶𝗼𝗽𝗮𝘀𝗱𝗳𝗴𝗵𝗷𝗸𝗹𝘇𝘅𝗰𝘃𝗯𝗻𝗺𝗤𝗪𝗘𝗥𝗧𝗬𝗨𝗜𝗢𝗣𝗔𝗦𝗗𝗙𝗚𝗛𝗝𝗞𝗟𝗭𝗫𝗖𝗩𝗕𝗡𝗠'
@@ -46,14 +47,15 @@ def len_str_list(lis):
     return res
 
 def justify(lines, line_length):
-    # TODO: is this working?
     new_lines = list()
     for line in lines[:len(lines) - 1]:
         line = line.split(' ')
+        indexes = list(range(0, len(line) - 1))
+        shuffle(indexes)
         i = 0
         while len_str_list(line) + len(line) - 1 < line_length:
             try:
-                line[i] += ' '
+                line[indexes[i]] += ' '
                 i += 1
             except IndexError:
                 break

@@ -1,0 +1,4 @@
+EbookLib==0.17.1
+py_cui==0.0.3
+cssutils==1.0.2
+beautifulsoup4==4.9.1

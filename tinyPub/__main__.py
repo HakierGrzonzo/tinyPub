@@ -374,6 +374,7 @@ def main():
     parser.add_argument('file', type = str, help = 'Path to .epub file.', metavar = 'file_path')
     parser.add_argument('--config', dest='config', type = str, help = 'Path to alternative config file', default = configPath, metavar = 'PATH')
     parser.add_argument('--version', action='version', version = __version__)
+    parser.add_argument('--cat', const=True, default=False, action="store_const")
     args = parser.parse_args()
     # read config, on failure, assume defaults
     try:
@@ -394,19 +395,27 @@ def main():
         }
     # load ebook
     book = Book(args.file)
-    # start ui initialization
-    root = impPYCUI(5, 30)
-    # show error if terminal is to small
-    try:
-        s = Interface(root, book)
-        root.start()
-    except pycui.errors.PyCUIOutOfBoundsError:
-        print('Your terminal is too small, try decreasing lineLength in ~/.tinypub.json')
-        input()
-    # After exit write to config file
-    with open(args.config, 'w+') as f:
-        f.write(json.dumps(config, indent = 4))
-    print('done!')
+    # if --cat → print epub
+    if args.cat:
+        for chapter in book.chapters:
+            text, _ = chapter["chapter"].text()
+            print(text)
+
+
+    else:
+        # start ui initialization
+        root = impPYCUI(5, 30)
+        # show error if terminal is to small
+        try:
+            s = Interface(root, book)
+            root.start()
+        except pycui.errors.PyCUIOutOfBoundsError:
+            print('Your terminal is too small, try decreasing lineLength in ~/.tinypub.json')
+            input()
+        # After exit write to config file
+        with open(args.config, 'w+') as f:
+            f.write(json.dumps(config, indent = 4))
+        print('done!')
 
 
 config = None
